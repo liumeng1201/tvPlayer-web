@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>儿童视频</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ==================== Browser Screen ==================== -->
+    <div id="screen-browser" class="screen">
+      <div class="top-bar">
+        <div class="top-bar-left">
+          <button class="top-bar-back hidden" id="btn-browser-back" aria-label="返回">←</button>
+          <span class="top-bar-title" id="browser-title">儿童视频</span>
+        </div>
+        <button class="top-bar-btn" id="btn-settings" title="设置">⚙</button>
+      </div>
+      <div class="browser-body" id="browser-body">
+        <!-- Content rendered by JavaScript -->
+      </div>
+    </div>
+
+    <!-- ==================== Player Screen ==================== -->
+    <div id="screen-player" class="screen">
+      <video id="player-video" playsinline webkit-playsinline></video>
+
+      <!-- Buffering overlay -->
+      <div id="buffering-overlay" class="buffering-overlay hidden">
+        <div class="buffering-spinner"></div>
+        <div class="buffering-text">加载中...</div>
+      </div>
+
+      <!-- Video title (top-left) -->
+      <div id="player-title-bar" class="player-title-bar hidden">
+        <button id="btn-player-back" class="btn-icon-round" aria-label="返回">←</button>
+        <span id="player-title-text" class="player-title-text"></span>
+      </div>
+
+      <!-- Seek indicator (center) -->
+      <div id="seek-indicator" class="seek-indicator hidden">快进</div>
+
+      <!-- Resume hint (center, lowered) -->
+      <div id="resume-hint" class="resume-hint hidden">
+        <span id="resume-hint-text"></span>
+      </div>
+
+      <!-- Bottom controls -->
+      <div id="player-bottom" class="player-bottom hidden">
+        <div class="player-gesture-hint" id="gesture-hint">点击左侧快退 · 点击右侧快进</div>
+        <!-- Progress bar -->
+        <div class="progress-row" id="progress-row">
+          <span class="time-text" id="time-current">0:00</span>
+          <div class="progress-track" id="progress-track">
+            <div class="progress-fill" id="progress-fill"></div>
+            <div class="progress-thumb" id="progress-thumb"></div>
+          </div>
+          <span class="time-text" id="time-total">0:00</span>
+        </div>
+        <!-- Buttons -->
+        <div class="ctrl-row">
+          <button class="ctrl-btn" id="btn-rewind" aria-label="快退5秒">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          </button>
+          <button class="ctrl-btn ctrl-play-btn" id="btn-play-pause" aria-label="播放/暂停">
+            <svg id="play-icon" viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
+            <svg id="pause-icon" class="hidden" viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><rect x="5" y="4" width="5" height="16"/><rect x="14" y="4" width="5" height="16"/></svg>
+          </button>
+          <button class="ctrl-btn" id="btn-forward" aria-label="快进5秒">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== Image Screen ==================== -->
+    <div id="screen-image" class="screen">
+      <div class="image-topbar">
+        <button id="btn-image-back" class="btn-icon-round" aria-label="返回">←</button>
+        <span id="image-title-text" class="image-title-text"></span>
+      </div>
+      <div class="image-body" id="image-body">
+        <!-- Image rendered by JavaScript -->
+      </div>
+    </div>
+
+    <!-- ==================== Settings Screen ==================== -->
+    <div id="screen-settings" class="screen">
+      <div class="settings-topbar">
+        <button id="btn-settings-back" class="btn-icon-round" aria-label="返回">←</button>
+        <span class="settings-topbar-title">设置</span>
+      </div>
+      <div class="settings-body" id="settings-body">
+        <!-- Settings items rendered by JavaScript -->
+      </div>
+    </div>
+
+    <!-- ==================== Cooldown Modal ==================== -->
+    <div id="cooldown-modal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <div class="modal-icon">😴</div>
+        <div class="modal-title">休息一下</div>
+        <div class="modal-msg" id="cooldown-msg"></div>
+        <button class="modal-btn" id="btn-cooldown-ok">知道了</button>
+      </div>
+    </div>
+
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
