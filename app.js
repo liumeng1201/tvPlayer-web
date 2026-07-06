@@ -525,6 +525,7 @@
   // ==========================================================
   const player = {
     _video: null,
+    _clickTimer: null,
     _autoHideTimer: null,
     _progressTimer: null,
     _saveTimer: null,
@@ -532,8 +533,27 @@
     _seekIndicatorTimer: null,
     _isSeeking: false,
 
+    _createVideoElement () {
+      // Remove old video element if any (critical for iOS memory release)
+      const old = document.getElementById('player-video')
+      if (old) old.remove()
+
+      const v = document.createElement('video')
+      v.id = 'player-video'
+      v.playsInline = true
+      v.setAttribute('playsinline', '')
+      v.setAttribute('webkit-playsinline', '')
+      v.style.cssText = 'width:100%;height:100%;object-fit:contain;background:#000;'
+
+      // Insert as first child of #screen-player
+      const screen = $('screen-player')
+      screen.insertBefore(v, screen.firstChild)
+      return v
+    },
+
     render () {
-      this._video = $('player-video')
+      // Create a brand new video element every time (iOS memory release)
+      this._video = this._createVideoElement()
       const videoInfo = state.videoList[state.currentIndex]
       if (!videoInfo) {
         router.navigate('browser')
@@ -542,6 +562,7 @@
 
       // Reset
       this._clearTimers()
+      this._clickTimer = null
       state.isPlaying = false
       state.hasPendingRestart = false
       state.currentTime = 0
@@ -558,6 +579,9 @@
       $('resume-hint').classList.remove('show')
       $('resume-hint').classList.add('hidden')
       $('buffering-overlay').classList.remove('hidden')
+      // Remove any stale error message from a previous failed load
+      const oldErr = document.getElementById('video-error-msg')
+      if (oldErr) oldErr.remove()
 
       // Set video source
       this._video.src = videoInfo.url
@@ -568,6 +592,7 @@
 
       // Attach video events
       this._attachEvents()
+      this._bindTapEvents()
 
       // Reset resume check flag so it runs on canplay
       this._resumeChecked = false
@@ -605,6 +630,51 @@
 
       handlers.forEach(({ evt, fn }) => v.addEventListener(evt, fn))
       v._handlers = handlers
+    },
+
+    _bindTapEvents () {
+      const v = this._video
+      if (!v) return
+
+      v.addEventListener('click', (e) => {
+        // Ignore if tap is on the bottom controls bar
+        const bottom = $('player-bottom')
+        if (bottom && !bottom.classList.contains('hidden')) {
+          const rect = bottom.getBoundingClientRect()
+          if (e.clientY >= rect.top) return
+        }
+        // Ignore if tap is on the title bar
+        const titleBar = $('player-title-bar')
+        if (titleBar && !titleBar.classList.contains('hidden')) {
+          const rect = titleBar.getBoundingClientRect()
+          if (e.clientX >= rect.left && e.clientX <= rect.right &&
+              e.clientY >= rect.top && e.clientY <= rect.bottom) return
+        }
+
+        // Double-tap detection
+        if (this._clickTimer) {
+          clearTimeout(this._clickTimer)
+          this._clickTimer = null
+          player.togglePlay()
+          return
+        }
+
+        this._clickTimer = setTimeout(() => {
+          this._clickTimer = null
+          // Single tap → toggle controls visibility
+          const controlsHidden = bottom.classList.contains('hidden')
+          if (controlsHidden) {
+            player._showBottom()
+            if (state.isPlaying) {
+              player._scheduleAutoHide()
+            }
+          } else {
+            player._cancelAutoHide()
+            $('player-bottom').classList.add('hidden')
+            $('player-title-bar').classList.add('hidden')
+          }
+        }, 300)
+      })
     },
 
     _onPlay () {
@@ -683,6 +753,16 @@
       $('player-title-bar').classList.remove('hidden')
       // Reset resume flag so retry can re-check
       this._resumeChecked = false
+      // Show error overlay on video area
+      const existing = document.getElementById('video-error-msg')
+      if (!existing) {
+        const el = document.createElement('div')
+        el.id = 'video-error-msg'
+        el.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:15;text-align:center;pointer-events:none;'
+        el.innerHTML = '<div style="font-size:48px;opacity:0.6;">😵</div><div style="font-size:16px;font-weight:600;color:rgba(255,255,255,0.7);margin-top:8px;">视频加载失败</div>'
+        const screen = $('screen-player')
+        if (screen) screen.appendChild(el)
+      }
     },
 
     _onTimeUpdate () {
@@ -894,16 +974,22 @@
 
     destroy () {
       this._clearTimers()
+      if (this._clickTimer) {
+        clearTimeout(this._clickTimer)
+        this._clickTimer = null
+      }
       const v = this._video
       if (v) {
         v.pause()
-        v.src = ''
+        v.removeAttribute('src')
         v.load()
-        // Remove handlers
+        // Remove event handlers
         if (v._handlers) {
           v._handlers.forEach(({ evt, fn }) => v.removeEventListener(evt, fn))
           delete v._handlers
         }
+        // Remove from DOM entirely — forces iOS to release video memory
+        v.remove()
       }
       this._video = null
     },
@@ -1122,53 +1208,6 @@
       progressTrack.addEventListener('touchend', () => {
         progressTrack.classList.remove('touching')
       }, { passive: true })
-    }
-
-    // Video tap — single tap toggles controls, double-tap toggles play/pause
-    const video = $('player-video')
-    if (video) {
-      let _clickTimer = null
-
-      video.addEventListener('click', (e) => {
-        // Ignore if tap is on the bottom controls bar
-        const bottom = $('player-bottom')
-        if (bottom && !bottom.classList.contains('hidden')) {
-          const rect = bottom.getBoundingClientRect()
-          if (e.clientY >= rect.top) return
-        }
-        // Ignore if tap is on the title bar
-        const titleBar = $('player-title-bar')
-        if (titleBar && !titleBar.classList.contains('hidden')) {
-          const rect = titleBar.getBoundingClientRect()
-          if (e.clientX >= rect.left && e.clientX <= rect.right &&
-              e.clientY >= rect.top && e.clientY <= rect.bottom) return
-        }
-
-        // Double-tap detection
-        if (_clickTimer) {
-          // Second tap within 300ms → double-tap: toggle play/pause
-          clearTimeout(_clickTimer)
-          _clickTimer = null
-          player.togglePlay()
-          return
-        }
-
-        _clickTimer = setTimeout(() => {
-          _clickTimer = null
-          // Single tap → toggle controls visibility
-          const controlsHidden = bottom.classList.contains('hidden')
-          if (controlsHidden) {
-            player._showBottom()
-            if (state.isPlaying) {
-              player._scheduleAutoHide()
-            }
-          } else {
-            player._cancelAutoHide()
-            $('player-bottom').classList.add('hidden')
-            $('player-title-bar').classList.add('hidden')
-          }
-        }, 300)
-      })
     }
 
     // --- Image ---
