@@ -237,16 +237,21 @@
       return base + fileName
     },
 
+    _cacheBust (url) {
+      const sep = url.includes('?') ? '&' : '?'
+      return url + sep + '_t=' + Date.now()
+    },
+
     async fetchFiles (path) {
-      const url = this.buildFilesUrl(path)
-      const res = await fetch(url)
+      const url = this._cacheBust(this.buildFilesUrl(path))
+      const res = await fetch(url, { headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       return res.json()
     },
 
     async fetchUpdateInfo () {
-      const url = `${this._server}/update.json`
-      const res = await fetch(url)
+      const url = this._cacheBust(`${this._server}/update.json`)
+      const res = await fetch(url, { headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       return res.json()
     },
