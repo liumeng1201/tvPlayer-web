@@ -1117,27 +1117,38 @@
       }, { passive: true })
     }
 
-    // Video tap to toggle play
+    // Video tap — toggle controls visibility (NOT play/pause)
     const video = $('player-video')
     if (video) {
       video.addEventListener('click', (e) => {
-        // Check if tap is in bottom controls area
+        // Ignore if tap is on the bottom controls bar
         const bottom = $('player-bottom')
         if (bottom && !bottom.classList.contains('hidden')) {
           const rect = bottom.getBoundingClientRect()
           if (e.clientY >= rect.top) return
         }
-        player.togglePlay()
-      })
+        // Ignore if tap is on the title bar
+        const titleBar = $('player-title-bar')
+        if (titleBar && !titleBar.classList.contains('hidden')) {
+          const rect = titleBar.getBoundingClientRect()
+          if (e.clientX >= rect.left && e.clientX <= rect.right &&
+              e.clientY >= rect.top && e.clientY <= rect.bottom) return
+        }
 
-      // iPad touch gestures for seek
-      let touchStartX = 0
-      video.addEventListener('touchstart', (e) => {
-        touchStartX = e.touches[0].clientX
-      }, { passive: true })
-      video.addEventListener('touchend', (e) => {
-        if (state.isPlaying) return // Let tap toggle handle playing state
-      }, { passive: true })
+        const controlsHidden = bottom.classList.contains('hidden')
+        if (controlsHidden) {
+          // Hidden → show controls
+          player._showBottom()
+          if (state.isPlaying) {
+            player._scheduleAutoHide()
+          }
+        } else {
+          // Visible → hide immediately
+          player._cancelAutoHide()
+          $('player-bottom').classList.add('hidden')
+          $('player-title-bar').classList.add('hidden')
+        }
+      })
     }
 
     // --- Image ---
