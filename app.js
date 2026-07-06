@@ -605,16 +605,18 @@
     _onPlay () {
       state.isPlaying = true
       $('buffering-overlay').classList.add('hidden')
-      $('play-icon').classList.remove('hidden')
-      $('pause-icon').classList.add('hidden')
+      // 播放中 → 显示暂停图标（点击可暂停）
+      $('play-icon').classList.add('hidden')
+      $('pause-icon').classList.remove('hidden')
       this._scheduleAutoHide()
       this._startProgressSaving()
     },
 
     _onPause () {
       state.isPlaying = false
-      $('play-icon').classList.add('hidden')
-      $('pause-icon').classList.remove('hidden')
+      // 暂停中 → 显示播放图标（点击可播放）
+      $('play-icon').classList.remove('hidden')
+      $('pause-icon').classList.add('hidden')
       this._cancelAutoHide()
       this._showBottom()
       $('player-title-bar').classList.remove('hidden')
@@ -1117,9 +1119,11 @@
       }, { passive: true })
     }
 
-    // Video tap — toggle controls visibility (NOT play/pause)
+    // Video tap — single tap toggles controls, double-tap toggles play/pause
     const video = $('player-video')
     if (video) {
+      let _clickTimer = null
+
       video.addEventListener('click', (e) => {
         // Ignore if tap is on the bottom controls bar
         const bottom = $('player-bottom')
@@ -1135,19 +1139,30 @@
               e.clientY >= rect.top && e.clientY <= rect.bottom) return
         }
 
-        const controlsHidden = bottom.classList.contains('hidden')
-        if (controlsHidden) {
-          // Hidden → show controls
-          player._showBottom()
-          if (state.isPlaying) {
-            player._scheduleAutoHide()
-          }
-        } else {
-          // Visible → hide immediately
-          player._cancelAutoHide()
-          $('player-bottom').classList.add('hidden')
-          $('player-title-bar').classList.add('hidden')
+        // Double-tap detection
+        if (_clickTimer) {
+          // Second tap within 300ms → double-tap: toggle play/pause
+          clearTimeout(_clickTimer)
+          _clickTimer = null
+          player.togglePlay()
+          return
         }
+
+        _clickTimer = setTimeout(() => {
+          _clickTimer = null
+          // Single tap → toggle controls visibility
+          const controlsHidden = bottom.classList.contains('hidden')
+          if (controlsHidden) {
+            player._showBottom()
+            if (state.isPlaying) {
+              player._scheduleAutoHide()
+            }
+          } else {
+            player._cancelAutoHide()
+            $('player-bottom').classList.add('hidden')
+            $('player-title-bar').classList.add('hidden')
+          }
+        }, 300)
       })
     }
 
